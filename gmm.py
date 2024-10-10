@@ -18,7 +18,6 @@ def create_gaussian(v):
 
 # Проверка положительной определённости матрицы
 def is_positive_definite(matrix):
-    """Проверяет, является ли матрица положительно определённой."""
     try:
         np.linalg.cholesky(matrix)
         return True
@@ -63,15 +62,19 @@ def near(V, v, rn):
         mean1, cov1 = create_gaussian(v1)
         mean2, cov2 = create_gaussian(v2)
         
-        # Проверка положительной определённости ковариационных матриц
         if not is_positive_definite(cov1) or not is_positive_definite(cov2):
-            return np.inf  # Возвращаем бесконечное расстояние, если матрицы не положительно определённые
+            return np.inf  
         
         # Рассчитываем Евклидово расстояние между средними
         mean_diff = np.linalg.norm(mean1 - mean2)
         
-        # Рассчитываем след метрики Васерштейна между ковариационными матрицами
-        cov_diff = np.trace(cov1 + cov2 - 2 * np.linalg.cholesky(cov1) @ np.linalg.cholesky(cov2))
+        try:
+            # Проверяем подкоренные значения перед вычислением квадратного корня
+            sqrt_term = np.linalg.cholesky(cov1) @ np.linalg.cholesky(cov2)
+            cov_diff = np.trace(cov1 + cov2 - 2 * sqrt_term)
+        except np.linalg.LinAlgError:
+            cov_diff = np.inf
+        
         return mean_diff + cov_diff
     
     neighbours = []
@@ -90,9 +93,8 @@ def collision_free(g1, g2, obstacles):
     
     Возвращает: True, если путь свободен, False - если нет
     """
-    # Проверка на пересечение с препятствиями (placeholder)
     for obstacle in obstacles:
-        if not in_free(g1, g2, obstacle):
+        if not in_free(g1, obstacle) or not in_free(g2, obstacle):
             return False
     return True
 
@@ -101,13 +103,13 @@ def in_free(g, obstacle):
     Проверяет, находится ли гауссово распределение g в свободной области, без препятствий.
     
     g: гауссово распределение
-    obstacle: препятствие
+    obstacle: препятствие (x, y, радиус)
     
     Возвращает: True, если распределение свободно, иначе False
     """
-    # Здесь должна быть проверка расстояния от г до препятствия
-    # Placeholder для примера
-    return True
+    x, y = g[0]  # Координаты распределения
+    ox, oy, r = obstacle  # Препятствие: (x, y, радиус)
+    return np.linalg.norm([x - ox, y - oy]) > r
 
 # 5. Основная функция построения дорожной карты
 def roadmap_construction(n, rn, obstacles, D):
@@ -138,13 +140,15 @@ def roadmap_construction(n, rn, obstacles, D):
     
     return V, E
 
-# 6. Визуализация графа
-def visualize_graph(V, E):
+# 6. Визуализация графа с препятствиями и выделением начальных и целевых узлов
+def visualize_graph(V, E, obstacles, D):
     """
-    Визуализирует граф на плоскости.
+    Визуализирует граф на плоскости с учётом препятствий и выделением начальных и целевых узлов.
     
     V: список узлов
     E: список рёбер
+    obstacles: список препятствий (окружностей)
+    D: список начальных и целевых узлов
     """
     G = nx.Graph()
     
@@ -154,25 +158,38 @@ def visualize_graph(V, E):
     for e in E:
         G.add_edge(tuple(e[0][:2]), tuple(e[1][:2]))  # Соединяем по x, y координатам
     
+    # Рисуем препятствия
+    fig, ax = plt.subplots()
+    
+    for obstacle in obstacles:
+        ox, oy, r = obstacle
+        circle = plt.Circle((ox, oy), r, color='red', fill=True, alpha=0.3)
+        ax.add_artist(circle)
+    
+    # Отображаем начальные и целевые узлы
+    start_goal_positions = [tuple(v[:2]) for v in D]
+    
     # Рисуем граф
     pos = {tuple(v[:2]): tuple(v[:2]) for v in V}
-    nx.draw(G, pos, with_labels=False, node_size=50, node_color='blue')
+    nx.draw(G, pos, with_labels=False, node_size=50, node_color='blue', edge_color='black')
     
-    plt.title("Gaussian Roadmap Graph")
+    nx.draw_networkx_nodes(G, pos, nodelist=start_goal_positions, node_color='green', node_size=100)
+    
+    plt.title("Gaussian Roadmap Graph with Obstacles and Start/Goal Nodes")
     plt.xlabel("x")
     plt.ylabel("y")
+    plt.xlim(0, 10)
+    plt.ylim(0, 10)
     plt.show()
 
 # Пример использования
 if __name__ == "__main__":
-    # Пример препятствий (можно модифицировать)
-    obstacles = []
+    # Пример препятствий: круги с координатами центра и радиусом
+    obstacles = [(4, 4, 1), (6, 6, 1.5), (2, 8, 0.8)]
 
-    # Начальные и целевые узлы (например, из начальных и целевых PDF)
+    # Начальные и целевые узлы
     D = [[1, 1, 0.5, 0.5, 0.1], [9, 9, 0.5, 0.5, -0.1]]
     
-    # Строим дорожную карту
     V, E = roadmap_construction(n=100, rn=2.5, obstacles=obstacles, D=D)
     
-    # Визуализируем результат
-    visualize_graph(V, E)
+    visualize_graph(V, E, obstacles, D)
