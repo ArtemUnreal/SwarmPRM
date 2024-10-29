@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 
-# 1. Создание гауссовых распределений
+# 1. Create Gaussian distributions
 def create_gaussian(v):
     """
-    Создает двумерное гауссово распределение с параметрами из вектора v.
+    Creates a 2D Gaussian distribution with parameters from vector v.
     
-    v: вектор параметров [x, y, sigma1, sigma2, rho]
-    Возвращает: среднее и ковариационную матрицу
+    v: parameter vector [x, y, sigma1, sigma2, rho]
+    Returns: mean and covariance matrix
     """
     x, y, sigma1, sigma2, rho = v
     mean = np.array([x, y])
@@ -16,7 +16,7 @@ def create_gaussian(v):
                     [rho * sigma1 * sigma2, sigma2**2]])
     return mean, cov
 
-# Проверка положительной определённости матрицы
+# Check if matrix is positive definite
 def is_positive_definite(matrix):
     try:
         np.linalg.cholesky(matrix)
@@ -24,17 +24,17 @@ def is_positive_definite(matrix):
     except np.linalg.LinAlgError:
         return False
 
-# 2. Генерация узлов в свободном пространстве
+# 2. Generate nodes in free space
 def sample_free(n, sigma_lb, sigma_ub, rho_lb, rho_ub, x_range, y_range):
     """
-    Генерация n узлов (гауссовых распределений) в свободном пространстве.
+    Generate n nodes (Gaussian distributions) in free space.
     
-    n: количество узлов
-    sigma_lb, sigma_ub: нижняя и верхняя границы для sigma1 и sigma2
-    rho_lb, rho_ub: нижняя и верхняя границы для rho
-    x_range, y_range: диапазоны для координат x и y
+    n: number of nodes
+    sigma_lb, sigma_ub: lower and upper bounds for sigma1 and sigma2
+    rho_lb, rho_ub: lower and upper bounds for rho
+    x_range, y_range: ranges for x and y coordinates
     
-    Возвращает: список узлов (векторов параметров)
+    Returns: list of nodes (parameter vectors)
     """
     nodes = []
     for _ in range(n):
@@ -46,30 +46,29 @@ def sample_free(n, sigma_lb, sigma_ub, rho_lb, rho_ub, x_range, y_range):
         nodes.append([x, y, sigma1, sigma2, rho])
     return nodes
 
-# 3. Нахождение ближайших узлов
+# 3. Find nearest nodes
 def near(V, v, rn):
     """
-    Возвращает все узлы, находящиеся в пределах радиуса rn от узла v.
+    Returns all nodes within radius rn from node v.
     
-    V: множество узлов
-    v: текущий узел
-    rn: радиус связи
+    V: set of nodes
+    v: current node
+    rn: connection radius
     
-    Возвращает: список узлов в пределах радиуса
+    Returns: list of nodes within radius
     """
     def wasserstein_distance(v1, v2):
-        """Вычисление расстояния Васерштейна между двумя гауссовыми распределениями."""
+        """Calculates the Wasserstein distance between two Gaussian distributions."""
         mean1, cov1 = create_gaussian(v1)
         mean2, cov2 = create_gaussian(v2)
         
         if not is_positive_definite(cov1) or not is_positive_definite(cov2):
             return np.inf  
         
-        # Рассчитываем Евклидово расстояние между средними
+        # Calculate Euclidean distance between means
         mean_diff = np.linalg.norm(mean1 - mean2)
         
         try:
-            # Проверяем подкоренные значения перед вычислением квадратного корня
             sqrt_term = np.linalg.cholesky(cov1) @ np.linalg.cholesky(cov2)
             cov_diff = np.trace(cov1 + cov2 - 2 * sqrt_term)
         except np.linalg.LinAlgError:
@@ -83,15 +82,15 @@ def near(V, v, rn):
             neighbours.append(v_prime)
     return neighbours
 
-# 4. Проверка свободного пути (без столкновений)
+# 4. Check collision-free path
 def collision_free(g1, g2, obstacles):
     """
-    Проверяет, свободен ли путь между двумя гауссовыми распределениями.
+    Checks if the path between two Gaussian distributions is collision-free.
     
-    g1, g2: гауссовы распределения
-    obstacles: список препятствий
+    g1, g2: Gaussian distributions
+    obstacles: list of obstacles
     
-    Возвращает: True, если путь свободен, False - если нет
+    Returns: True if path is free, False otherwise
     """
     for obstacle in obstacles:
         if not in_free(g1, obstacle) or not in_free(g2, obstacle):
@@ -100,30 +99,29 @@ def collision_free(g1, g2, obstacles):
 
 def in_free(g, obstacle):
     """
-    Проверяет, находится ли гауссово распределение g в свободной области, без препятствий.
+    Checks if the Gaussian distribution g is in free space, without obstacles.
     
-    g: гауссово распределение
-    obstacle: препятствие (x, y, радиус)
+    g: Gaussian distribution
+    obstacle: obstacle (x, y, radius)
     
-    Возвращает: True, если распределение свободно, иначе False
+    Returns: True if distribution is free, otherwise False
     """
-    x, y = g[0]  # Координаты распределения
-    ox, oy, r = obstacle  # Препятствие: (x, y, радиус)
+    x, y = g[0]  # Distribution coordinates
+    ox, oy, r = obstacle  # Obstacle: (x, y, radius)
     return np.linalg.norm([x - ox, y - oy]) > r
 
-# 5. Основная функция построения дорожной карты
+# 5. Main function for roadmap construction
 def roadmap_construction(n, rn, obstacles, D):
     """
-    Строит граф на основе узлов и рёбер, соединяющих гауссовы распределения.
+    Constructs a graph based on nodes and edges connecting Gaussian distributions.
     
-    n: количество узлов
-    rn: радиус связи
-    obstacles: список препятствий
-    D: множество начальных и целевых PDF
+    n: number of nodes
+    rn: connection radius
+    obstacles: list of obstacles
+    D: set of initial and target PDFs
     
-    Возвращает: граф (V, E)
+    Returns: graph (V, E)
     """
-    # Создаем узлы в параметрическом пространстве
     V = list(D) + sample_free(n, 0.1, 2.0, -0.9, 0.9, (0, 10), (0, 10))
     E = []
     
@@ -140,25 +138,25 @@ def roadmap_construction(n, rn, obstacles, D):
     
     return V, E
 
-# 6. Визуализация графа с препятствиями и выделением начальных и целевых узлов
+# 6. Graph visualization with obstacles and highlighting start/goal nodes
 def visualize_graph(V, E, obstacles, D):
     """
-    Визуализирует граф на плоскости с учётом препятствий и выделением начальных и целевых узлов.
+    Visualizes the graph on a plane with obstacles and highlights start and goal nodes.
     
-    V: список узлов
-    E: список рёбер
-    obstacles: список препятствий (окружностей)
-    D: список начальных и целевых узлов
+    V: list of nodes
+    E: list of edges
+    obstacles: list of obstacles (circles)
+    D: list of start and goal nodes
     """
     G = nx.Graph()
     
-    # Добавляем узлы и рёбра
+    # Add nodes and edges
     for v in V:
-        G.add_node(tuple(v[:2]))  # Используем только координаты x, y
+        G.add_node(tuple(v[:2]))  # Use only x, y coordinates
     for e in E:
-        G.add_edge(tuple(e[0][:2]), tuple(e[1][:2]))  # Соединяем по x, y координатам
+        G.add_edge(tuple(e[0][:2]), tuple(e[1][:2]))  # Connect by x, y coordinates
     
-    # Рисуем препятствия
+    # Draw obstacles
     fig, ax = plt.subplots()
     
     for obstacle in obstacles:
@@ -166,10 +164,10 @@ def visualize_graph(V, E, obstacles, D):
         circle = plt.Circle((ox, oy), r, color='red', fill=True, alpha=0.3)
         ax.add_artist(circle)
     
-    # Отображаем начальные и целевые узлы
+    # Highlight start and goal nodes
     start_goal_positions = [tuple(v[:2]) for v in D]
     
-    # Рисуем граф
+    # Draw graph
     pos = {tuple(v[:2]): tuple(v[:2]) for v in V}
     nx.draw(G, pos, with_labels=False, node_size=50, node_color='blue', edge_color='black')
     
@@ -182,12 +180,12 @@ def visualize_graph(V, E, obstacles, D):
     plt.ylim(0, 10)
     plt.show()
 
-# Пример использования
+# Usage example
 if __name__ == "__main__":
-    # Пример препятствий: круги с координатами центра и радиусом
+    # Example obstacles: circles with center coordinates and radius
     obstacles = [(4, 4, 1), (6, 6, 1.5), (2, 8, 0.8)]
 
-    # Начальные и целевые узлы
+    # Start and goal nodes
     D = [[1, 1, 0.5, 0.5, 0.1], [9, 9, 0.5, 0.5, -0.1]]
     
     V, E = roadmap_construction(n=100, rn=2.5, obstacles=obstacles, D=D)

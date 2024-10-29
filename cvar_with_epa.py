@@ -4,7 +4,7 @@ from scipy.stats import norm
 
 # GJK Algorithm for Collision Detection
 def support(A, B, direction):
-    """Find the support point in Minkowski difference along the given direction."""
+    """Find the support point in the Minkowski difference along the given direction."""
     p1 = A[np.argmax(np.dot(A, direction))]  # Farthest point in set A along direction
     p2 = B[np.argmax(np.dot(B, -direction))]  # Farthest point in set B along -direction
     return p1 - p2
@@ -27,7 +27,7 @@ def gjk(A, B, max_iterations=30):
             # Collision detected
             return True
     
-    return False  # Если не нашли за max_iterations
+    return False  # No collision found within max_iterations
 
 def handle_simplex(simplex, direction):
     """Handle the simplex to check for origin and update direction."""
@@ -37,7 +37,7 @@ def handle_simplex(simplex, direction):
         AB = B - A
         AO = -A
         if np.dot(AB, AO) > 0:
-            direction[:] = np.array([AB[1], -AB[0]])  # Перпендикулярный вектор в 2D
+            direction[:] = np.array([AB[1], -AB[0]])  # Perpendicular vector in 2D
         else:
             simplex.pop(1)
             direction[:] = AO
@@ -99,7 +99,7 @@ def epa(simplex, A, B):
 
 # Calculate Signed Distance Function (SDF)
 def calculate_sdf(robot_mean, obstacle_vertices):
-    # Convert robot_mean to a list of points with the same format as obstacle_vertices
+    """Calculate the SDF between the robot's mean position and obstacle vertices."""
     robot_points = np.array([robot_mean])
     
     gjk_result = gjk(robot_points, obstacle_vertices)
@@ -108,16 +108,18 @@ def calculate_sdf(robot_mean, obstacle_vertices):
         sdf = np.linalg.norm(robot_mean - obstacle_vertices.mean(axis=0))
     else:
         # Collision detected: return negative penetration depth using EPA
-        sdf = -epa(robot_points, obstacle_vertices)  # Передаем два множества: точки робота и препятствия
+        sdf = -epa(robot_points, obstacle_vertices)
     
     return sdf
 
 # Compute CVaR for collision risk
 def compute_cvar(sdf_mean, sdf_var, alpha):
+    """Compute the Conditional Value at Risk (CVaR) for collision risk."""
     return sdf_mean + norm.ppf(1 - alpha) * np.sqrt(sdf_var)
 
 # Generate random obstacle within limits
 def generate_random_obstacle(xlim, ylim, size=0.2):
+    """Generate a random rectangular obstacle within given limits."""
     x_center = np.random.uniform(xlim[0] + size, xlim[1] - size)
     y_center = np.random.uniform(ylim[0] + size, ylim[1] - size)
     half_size = size / 2
@@ -128,10 +130,12 @@ def generate_random_obstacle(xlim, ylim, size=0.2):
 
 # Check collision between two obstacles
 def check_collision(obstacle1, obstacle2):
+    """Check for collision between two obstacles."""
     return gjk(obstacle1, obstacle2)
 
 # Generate obstacles without collision
 def generate_obstacles(num_obstacles, xlim, ylim, max_attempts=100):
+    """Generate a specified number of obstacles within limits, avoiding collisions."""
     obstacles = []
     for i in range(num_obstacles):
         attempts = 0
@@ -149,6 +153,7 @@ def generate_obstacles(num_obstacles, xlim, ylim, max_attempts=100):
 
 # Visualize robot and obstacles
 def visualize_robot_obstacles(robot_mean, obstacles, sdf_values):
+    """Visualize the robot mean position and obstacles, with SDF values."""
     plt.figure(figsize=(6, 6))
     plt.scatter(*robot_mean, color='blue', label="Robot Mean")
     

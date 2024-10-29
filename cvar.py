@@ -90,11 +90,11 @@ def build_graph(nodes, obstacles, xlim, ylim):
     G = nx.Graph()
     num_nodes = len(nodes)
 
-    # Добавляем все узлы в граф
+    # Add all nodes to the graph
     for i in range(num_nodes):
         G.add_node(i, pos=nodes[i])
 
-    # Создаем матрицу расстояний и добавляем ребра при отсутствии коллизий
+    # Create distance matrix and add edges if no collision is detected
     dist_matrix = distance_matrix(nodes, nodes)
     for i in range(num_nodes):
         for j in range(i + 1, num_nodes):
@@ -132,7 +132,6 @@ def visualize_path(nodes, obstacles, path):
     plt.legend()
     plt.grid(True)
     plt.show()
-
 
 # --- Main Execution --- #
 xlim, ylim = (0, 1), (0, 1)
