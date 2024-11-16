@@ -178,6 +178,7 @@ def visualize_graph(V, E, obstacles, D):
     plt.ylabel("y")
     plt.xlim(0, 10)
     plt.ylim(0, 10)
+    plt.savefig('/app/image_gmm.png')
     plt.show()
 
 # Usage example

@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
@@ -166,7 +167,9 @@ def visualize_robot_obstacles(robot_mean, obstacles, sdf_values):
     plt.ylabel("Y")
     plt.legend()
     plt.grid(True)
+    plt.savefig('/app/image_cvar_with_epa.png')
     plt.show()
+
 
 # Main execution
 mean_robot = np.array([0.5, 0.5])

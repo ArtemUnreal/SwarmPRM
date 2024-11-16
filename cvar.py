@@ -5,6 +5,21 @@ from scipy.spatial import distance_matrix
 import networkx as nx
 
 # --- Collision Detection (GJK and EPA) --- #
+def epa(robot_points, obstacle_vertices, max_iterations=50):
+    """Expanding Polytope Algorithm (EPA) for finding the minimum distance between two convex shapes."""
+    # Начальная гиперплоскость для EPA
+    simplex = [robot_points[0] - obstacle_vertices.mean(axis=0)]  # Начальная точка столкновения
+    direction = np.array([1.0, 0.0])  # Направление поиска
+    for _ in range(max_iterations):
+        support_point = support(robot_points, obstacle_vertices, direction)
+        simplex.append(support_point)
+
+        # Обработка гиперплоскости, чтобы расширить полиптоп
+        if len(simplex) == 3:  # Простая схема для 2D
+            break  # Это не полная реализация, нужна доработка
+    return np.linalg.norm(simplex[-1])  # Возвращаем расстояние, как пример
+
+
 def support(A, B, direction):
     """Find the support point in Minkowski difference along the given direction."""
     p1 = A[np.argmax(np.dot(A, direction))]
@@ -131,6 +146,7 @@ def visualize_path(nodes, obstacles, path):
     plt.ylabel("Y")
     plt.legend()
     plt.grid(True)
+    plt.savefig('/app/image_cvar.png')
     plt.show()
 
 # --- Main Execution --- #
